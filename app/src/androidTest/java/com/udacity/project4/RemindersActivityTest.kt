@@ -99,7 +99,7 @@ class RemindersActivityTest {
         IdlingRegistry.getInstance().unregister(dataBindingIdlingResource)
     }
 
-
+    // Tries to insert a valid location and then checks the recyclerview's items for the added reminder.
     @Test
     fun testSuccessfulInsertion() = runBlocking {
         remindersListViewModel.deleteAll()
@@ -126,7 +126,8 @@ class RemindersActivityTest {
         onView(withText("My Description")).check(matches(isDisplayed()))
         activityScenario.close()
     }
-
+    
+    // Inserts a reminder with no title to check snackbar errors.
     @Test
     fun testNoTitleSnackBar() = runBlocking {
         remindersListViewModel.deleteAll()
@@ -150,7 +151,7 @@ class RemindersActivityTest {
         activityScenario.close()
     }
 
-
+    // Inserts a reminder with no location to check snackbar errors.
     @Test
     fun testNoLocationSnackBar() {
         remindersListViewModel.deleteAll()
