@@ -42,7 +42,7 @@ class RemindersDaoTest {
     @After
     fun closeDb() = database.close()
 
-
+    // Tries to insert a reminder into the database, then fetches it using id, and then compares it against the original item.
     @Test
     fun testInsertReminders() = runTest {
         val reminder = ReminderDTO("title", "description", "loc", 0.0, 0.0)
@@ -58,7 +58,7 @@ class RemindersDaoTest {
 
     }
 
-
+    // Tries to empty the database and then fetches all the reminders to ensure that the retrieved list from the database is empty.
     @Test
     fun testDeleteAllReminders() = runTest {
         val reminder = ReminderDTO("title", "description", "loc", 0.0, 0.0)
