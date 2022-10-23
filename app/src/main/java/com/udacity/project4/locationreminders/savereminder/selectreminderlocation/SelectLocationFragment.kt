@@ -11,10 +11,15 @@ import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.location.Criteria
+import android.location.Location
 import android.location.LocationManager
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.*
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.databinding.DataBindingUtil
 import androidx.navigation.fragment.findNavController
@@ -32,21 +37,50 @@ import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.databinding.FragmentSelectLocationBinding
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
+import kotlinx.android.synthetic.main.it_reminder.*
 import org.koin.android.ext.android.inject
+import org.koin.androidx.viewmodel.ext.android.sharedViewModel
 
-private const val REQUEST_FOREGROUND_AND_BACKGROUND_PERMISSION_RESULT_CODE = 33
-private const val REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE = 34
-private const val REQUEST_TURN_DEVICE_LOCATION_ON = 29
-private const val LOCATION_PERMISSION_INDEX = 0
-private const val BACKGROUND_LOCATION_PERMISSION_INDEX = 1
+
 private const val TAG = "SelectLocationFragment"
 
 class SelectLocationFragment : BaseFragment() {
+    @SuppressLint("MissingPermission")
+    private val requestPermsContent =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { perms: Map<String, Boolean> ->
+            if (perms[Manifest.permission.ACCESS_FINE_LOCATION] == true) {
+                checkDeviceLocationSettingsAndStartGeofence(true)
+            } else {
+                Snackbar.make(
+                    requireView(),
+                    "Location permission is needed",
+                    Snackbar.LENGTH_INDEFINITE
+                ).setAction("OK") {
+                    val intent = Intent(
+                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.parse("package:" + requireContext().packageName)
+                    )
+                    intent.addCategory(Intent.CATEGORY_DEFAULT)
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(intent)
+                }.show()
+            }
+        }
+
+    @SuppressLint("MissingPermission")
+    private val locationsServicesContent =
+        registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
+            if (it.resultCode == Activity.RESULT_OK) {
+                mapView.isMyLocationEnabled = true
+            }
+        }
+
+
     private var poiMarker: Marker? = null
     private var mPoi: PointOfInterest? = null
 
     //Use Koin to get the view model of the SaveReminder
-    override val _viewModel: SaveReminderViewModel by inject()
+    override val _viewModel: SaveReminderViewModel by sharedViewModel()
     private lateinit var binding: FragmentSelectLocationBinding
 
     private lateinit var mapView: GoogleMap
@@ -67,67 +101,64 @@ class SelectLocationFragment : BaseFragment() {
         val mapFragment = childFragmentManager.findFragmentById(R.id.mapView) as SupportMapFragment
 
         mapFragment.getMapAsync {
+            mapView = it
+            val locationManager =
+                requireContext().getSystemService(Context.LOCATION_SERVICE) as LocationManager
+            val criteria = Criteria()
+            var location: Location? = null
             if (foregroundPermissionApproved()) {
-                mapView = it
-
-                val locationManager =
-                    requireContext().getSystemService(Context.LOCATION_SERVICE) as LocationManager
-                val criteria = Criteria()
-
-                val location = locationManager.getLastKnownLocation(
+                location = locationManager.getLastKnownLocation(
                     locationManager.getBestProvider(
                         criteria,
                         false
                     )!!
                 )
-                if (location != null) {
-                    mapView.animateCamera(
-                        CameraUpdateFactory.newLatLngZoom(
-                            LatLng(
-                                location.latitude,
-                                location.longitude
-                            ), 13f
-                        )
+            }
+            if (location != null) {
+                mapView.animateCamera(
+                    CameraUpdateFactory.newLatLngZoom(
+                        LatLng(
+                            location.latitude,
+                            location.longitude
+                        ), 13f
                     )
+                )
 
-                    val cameraPosition = CameraPosition.Builder()
-                        .target(LatLng(location.latitude, location.longitude))
-                        .zoom(17f)
-                        .bearing(90f)
-                        .build()
-                    mapView.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
-                }
+                val cameraPosition = CameraPosition.Builder()
+                    .target(LatLng(location.latitude, location.longitude))
+                    .zoom(17f)
+                    .bearing(90f)
+                    .build()
+                mapView.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
+            }
+            setMapStyle(mapView)
+            mapView.setOnPoiClickListener { poi ->
+                mPoi = poi
+                poiMarker?.remove()
+                poiMarker = null
+                poiMarker = mapView.addMarker(
+                    MarkerOptions()
+                        .position(poi.latLng)
+                        .title(poi.name)
 
+                )
+                poiMarker?.showInfoWindow()
+                binding.saveButton.visibility = View.VISIBLE
 
-                setMapStyle(mapView)
-                mapView.setOnPoiClickListener { poi ->
-                    mPoi = poi
-                    poiMarker?.remove()
-                    poiMarker = null
-                    poiMarker = mapView.addMarker(
-                        MarkerOptions()
-                            .position(poi.latLng)
-                            .title(poi.name)
+            }
+            mapView.setOnMapClickListener {
+                val poi = PointOfInterest(it, "custom", "custom")
+                mPoi = poi
+                poiMarker?.remove()
+                poiMarker = null
+                poiMarker = mapView.addMarker(
+                    MarkerOptions()
+                        .position(poi.latLng)
+                        .title(poi.name)
 
-                    )
-                    poiMarker?.showInfoWindow()
-                    binding.saveButton.visibility = View.VISIBLE
-
-                }
-                mapView.setOnMapClickListener {
-                   val poi =  PointOfInterest(it,"custom","custom")
-                    mPoi = poi
-                    poiMarker?.remove()
-                    poiMarker = null
-                    poiMarker = mapView.addMarker(
-                        MarkerOptions()
-                            .position(poi.latLng)
-                            .title(poi.name)
-
-                    )
-                    poiMarker?.showInfoWindow()
-                    binding.saveButton.visibility = View.VISIBLE
-                }
+                )
+                poiMarker?.showInfoWindow()
+                binding.saveButton.visibility = View.VISIBLE
             }
         }
         binding.saveButton.setOnClickListener {
@@ -143,8 +174,6 @@ class SelectLocationFragment : BaseFragment() {
 
     private fun setMapStyle(map: GoogleMap) {
         try {
-            // Customize the styling of the base map using a JSON object defined
-            // in a raw resource file.
             val success = map.setMapStyle(
                 MapStyleOptions.loadRawResourceStyle(
                     requireContext(),
@@ -203,45 +232,15 @@ class SelectLocationFragment : BaseFragment() {
         checkPermissionsAndStartGeofencing()
     }
 
-    @SuppressLint("MissingPermission")
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
-        grantResults: IntArray
-    ) {
-        if (requestCode == REQUEST_FOREGROUND_AND_BACKGROUND_PERMISSION_RESULT_CODE) {
-            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Log.d(TAG, "onRequestPermissionsResult: background approved")
-            } else {
-                Log.d(TAG, "onRequestPermissionsResult: background rejected")
-            }
-        } else if (requestCode == REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE) {
-            if (grantResults[0] == PackageManager.PERMISSION_GRANTED || grantResults[1] == PackageManager.PERMISSION_GRANTED) {
-                mapView.isMyLocationEnabled = true
-
-            }
-        }
-    }
 
     private fun checkPermissionsAndStartGeofencing() {
-        if (foregroundAndBackgroundLocationPermissionsApproved()) {
-            checkDeviceLocationSettingsAndStartGeofence()
-        } else {
-            requestForegroundAndBackgroundLocationPermissions()
-        }
-    }
-
-    private fun requestForegroundAndBackgroundLocationPermissions() {
         if (foregroundPermissionApproved()) {
-            if (backgroundPermissionApproved()) {
-                return
-            } else {
-                requestBackgroundPermission()
-            }
+            checkDeviceLocationSettingsAndStartGeofence()
         } else {
             requestForegroundPermission()
         }
     }
+
 
     @TargetApi(29)
     private fun requestForegroundPermission() {
@@ -249,28 +248,8 @@ class SelectLocationFragment : BaseFragment() {
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION
         )
-        ActivityCompat.requestPermissions(
-            requireActivity(),
-            perms,
-            REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE
-        )
+        requestPermsContent.launch(perms)
     }
-
-    @TargetApi(29)
-    private fun requestBackgroundPermission() {
-        val perms = arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-        ActivityCompat.requestPermissions(
-            requireActivity(),
-            perms,
-            REQUEST_FOREGROUND_AND_BACKGROUND_PERMISSION_RESULT_CODE
-        )
-    }
-
-    @TargetApi(29)
-    private fun foregroundAndBackgroundLocationPermissionsApproved(): Boolean {
-        return foregroundPermissionApproved() && backgroundPermissionApproved()
-    }
-
 
     private fun foregroundPermissionApproved(): Boolean {
         return ((ActivityCompat.checkSelfPermission(
@@ -280,24 +259,6 @@ class SelectLocationFragment : BaseFragment() {
             requireContext(),
             Manifest.permission.ACCESS_COARSE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED))
-    }
-
-    @TargetApi(29)
-    private fun backgroundPermissionApproved(): Boolean {
-        return ActivityCompat.checkSelfPermission(
-            requireContext(),
-            Manifest.permission.ACCESS_BACKGROUND_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-    }
-
-    @SuppressLint("MissingPermission")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQUEST_TURN_DEVICE_LOCATION_ON && resultCode == Activity.RESULT_CANCELED) {
-            checkDeviceLocationSettingsAndStartGeofence(false)
-        }else{
-            mapView.isMyLocationEnabled = true
-        }
     }
 
     @SuppressLint("MissingPermission")
@@ -311,15 +272,12 @@ class SelectLocationFragment : BaseFragment() {
             .addOnCompleteListener {
                 if (it.isSuccessful) {
                     mapView.isMyLocationEnabled = true
-
                 }
             }.addOnFailureListener {
                 if (it is ResolvableApiException && resolve) {
                     try {
-                        it.startResolutionForResult(
-                            requireActivity(),
-                            REQUEST_TURN_DEVICE_LOCATION_ON
-                        )
+                        val intentSenderRequest = IntentSenderRequest.Builder(it.resolution).build()
+                        locationsServicesContent.launch(intentSenderRequest)
                     } catch (sendEx: IntentSender.SendIntentException) {
                         Log.d(TAG, "Error getting location settings resolution: " + sendEx.message)
                     }

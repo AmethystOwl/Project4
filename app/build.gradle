@@ -75,6 +75,7 @@ dependencies {
     //Navigation dependencies
     implementation 'androidx.appcompat:appcompat:1.5.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.2.0-alpha04'
+    implementation 'androidx.test.uiautomator:uiautomator:2.2.0'
     testImplementation project(path: ':app')
     androidTestImplementation project(path: ':app')
     kapt "androidx.lifecycle:lifecycle-compiler:2.5.1"
@@ -164,7 +165,7 @@ dependencies {
 // Koin Test features
     testImplementation "io.insert-koin:koin-test:$koin_version"
 
-
+    testImplementation 'org.robolectric:robolectric:4.9'
 }
 
 

@@ -1,4 +1,5 @@
 import android.app.Application
+import android.view.View
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.room.Room
 import androidx.test.core.app.ActivityScenario
@@ -19,6 +20,7 @@ import com.udacity.project4.locationreminders.data.local.RemindersLocalRepositor
 import com.udacity.project4.locationreminders.reminderslist.RemindersListViewModel
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.util.DataBindingIdlingResource
+import com.udacity.project4.util.MainCoroutineRule
 import com.udacity.project4.util.monitorActivity
 import com.udacity.project4.utils.EspressoIdlingResource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -30,7 +32,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-
+import org.robolectric.shadow.*
 
 @RunWith(AndroidJUnit4::class)
 @LargeTest
@@ -46,6 +48,10 @@ class RemindersActivityTest {
     @get:Rule
     var instantExecutorRule = InstantTaskExecutorRule()
     private val dataBindingIdlingResource = DataBindingIdlingResource()
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @get:Rule
+    val mainCoroutineRule = MainCoroutineRule()
 
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -101,9 +107,13 @@ class RemindersActivityTest {
 
 
     @Test
-    fun testSuccessfulInsertion() = runBlocking {
+    fun testSuccessfulInsertion() { //= runBlocking {
+        var decorView: View? = null
         remindersListViewModel.deleteAll()
         val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+        activityScenario.onActivity {
+            decorView = it.window.decorView
+        }
         dataBindingIdlingResource.monitorActivity(activityScenario)
 
         onView(withId(R.id.addReminderFAB)).perform(click())
@@ -117,11 +127,16 @@ class RemindersActivityTest {
         onView(withId(R.id.selectLocation)).perform(click())
         // a little delay because map initialization can take up some time.
         onView(withId(R.id.saveButton)).check(matches(withEffectiveVisibility(Visibility.GONE)))
-        delay(1000)
+        runBlocking { delay(1000) }
         onView(withId(R.id.mapView)).perform(click())
-        delay(1000)
+        runBlocking { delay(1000) }
         onView(withId(R.id.saveButton)).perform(click())
         onView(withId(R.id.saveReminder)).perform(click())
+        onView(withText("Reminder Saved !")).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+
+        /* onView(withText())
+             .inRoot(withDecorView(Matchers.not(decorView)))// Here you use decorView
+             .check(matches(isDisplayed()));*/
         onView(withText("My Reminder")).check(matches(isDisplayed()))
         onView(withText("My Description")).check(matches(isDisplayed()))
         activityScenario.close()
@@ -154,7 +169,6 @@ class RemindersActivityTest {
     @Test
     fun testNoLocationSnackBar() {
         remindersListViewModel.deleteAll()
-
         val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
         dataBindingIdlingResource.monitorActivity(activityScenario)
         onView(withId(R.id.noDataTextView)).check(matches(isDisplayed()))
@@ -173,4 +187,27 @@ class RemindersActivityTest {
     }
 
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun testToastMessage() {
+        remindersListViewModel.deleteAll()
+        val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+        dataBindingIdlingResource.monitorActivity(activityScenario)
+        onView(withId(R.id.addReminderFAB)).perform(click())
+        onView(withId(R.id.reminderTitle)).perform(
+            ViewActions.typeText("Title"), ViewActions.closeSoftKeyboard()
+        )
+        onView(withId(R.id.reminderDescription)).perform(
+            ViewActions.typeText("Description"), ViewActions.closeSoftKeyboard()
+        )
+        onView(withId(R.id.selectLocation)).perform(click())
+        runBlocking { delay(1000) }
+        onView(withId(R.id.mapView)).perform(click())
+        runBlocking { delay(1000) }
+        onView(withId(R.id.saveButton)).perform(click())
+
+        onView(withId(R.id.saveReminder)).perform(click())
+
+        activityScenario.close()
+    }
 }
