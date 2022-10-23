@@ -106,14 +106,11 @@ class RemindersActivityTest {
     }
 
 
+    // tests for successful insertion, and checks Snackbar visibility.
     @Test
     fun testSuccessfulInsertion() { //= runBlocking {
-        var decorView: View? = null
         remindersListViewModel.deleteAll()
         val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
-        activityScenario.onActivity {
-            decorView = it.window.decorView
-        }
         dataBindingIdlingResource.monitorActivity(activityScenario)
 
         onView(withId(R.id.addReminderFAB)).perform(click())
@@ -133,15 +130,12 @@ class RemindersActivityTest {
         onView(withId(R.id.saveButton)).perform(click())
         onView(withId(R.id.saveReminder)).perform(click())
         onView(withText("Reminder Saved !")).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
-
-        /* onView(withText())
-             .inRoot(withDecorView(Matchers.not(decorView)))// Here you use decorView
-             .check(matches(isDisplayed()));*/
         onView(withText("My Reminder")).check(matches(isDisplayed()))
         onView(withText("My Description")).check(matches(isDisplayed()))
         activityScenario.close()
     }
 
+    // Test that makes sure "Please enter title" snackbar is shown when it's blank
     @Test
     fun testNoTitleSnackBar() = runBlocking {
         remindersListViewModel.deleteAll()
@@ -165,7 +159,7 @@ class RemindersActivityTest {
         activityScenario.close()
     }
 
-
+    // Test that makes sure "Please select location" snackbar is shown when it's blank
     @Test
     fun testNoLocationSnackBar() {
         remindersListViewModel.deleteAll()
@@ -186,28 +180,4 @@ class RemindersActivityTest {
         activityScenario.close()
     }
 
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    @Test
-    fun testToastMessage() {
-        remindersListViewModel.deleteAll()
-        val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
-        dataBindingIdlingResource.monitorActivity(activityScenario)
-        onView(withId(R.id.addReminderFAB)).perform(click())
-        onView(withId(R.id.reminderTitle)).perform(
-            ViewActions.typeText("Title"), ViewActions.closeSoftKeyboard()
-        )
-        onView(withId(R.id.reminderDescription)).perform(
-            ViewActions.typeText("Description"), ViewActions.closeSoftKeyboard()
-        )
-        onView(withId(R.id.selectLocation)).perform(click())
-        runBlocking { delay(1000) }
-        onView(withId(R.id.mapView)).perform(click())
-        runBlocking { delay(1000) }
-        onView(withId(R.id.saveButton)).perform(click())
-
-        onView(withId(R.id.saveReminder)).perform(click())
-
-        activityScenario.close()
-    }
 }

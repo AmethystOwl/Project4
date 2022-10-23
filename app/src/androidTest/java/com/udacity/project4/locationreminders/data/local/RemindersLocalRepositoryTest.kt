@@ -84,9 +84,16 @@ class RemindersLocalRepositoryTest {
             reminder1,
             ((remindersRepository.getReminder(reminder1.id) as Result.Success).data)
         )
+    }
+    // Tries to fetches a reminder using fake/wrong id, and then checks for "Reminder not found!" Result
+    @Test
+    fun testGetReminderByFakeId() = runBlocking {
+       val result = remindersRepository.getReminder("TEST_FAKE_ID") as Result.Error
+        Assert.assertEquals(Result.Error("Reminder not found!"),result)
 
 
     }
+
     // Tries to empty the database using the repository, then fetches all data, and ensures that retrieved list is empty.
     @Test
     fun testDeletionAll() = runBlocking {
