@@ -46,7 +46,7 @@ class RemindersListViewModelTest {
         repository.deleteAllReminders()
     }
 
-
+    // Makes sure that showLoading livedata is true when repository is fetching data, and is false when it's done.
     @Test
     fun testLoading() = runTest {
         mainCoroutineRule.pauseDispatcher()
@@ -55,6 +55,7 @@ class RemindersListViewModelTest {
         mainCoroutineRule.resumeDispatcher()
         assertEquals(false,remindersListViewModel.showLoading.getOrAwaitValue())
     }
+    // Makes sure that the viewModel fetches data correctly, by inserting one item and checks if the retrieved list size is 1.
     @Test
     fun testHasData() = runTest{
         val reminderDTO = ReminderDTO(
@@ -70,13 +71,14 @@ class RemindersListViewModelTest {
 
 
     }
+    // Makes sure that the 'showNoData' livedata is set to true when the database is empty.
     @Test
     fun testNoData() = runTest {
         repository.deleteAllReminders()
         remindersListViewModel.loadReminders()
         assertEquals(true,remindersListViewModel.showNoData.getOrAwaitValue())
     }
-
+    // Makes sure that the 'showSnackBar' livedata value is equal to "Test exception" when there's an error.
     @Test
     fun testSnackBarError() = runTest{
         repository.setReturnError(true)

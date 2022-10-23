@@ -39,7 +39,8 @@ class RemindersLocalRepositoryTest {
             .build()
         remindersRepository = RemindersLocalRepository(database.reminderDao())
     }
-
+    // Tries to insert a reminder into the database using the repository,
+    // then fetches them using ids, and then compares them against the original items.
     @Test
     fun testInsertReminder() = runBlocking {
         val reminder1 = ReminderDTO(
@@ -68,7 +69,7 @@ class RemindersLocalRepositoryTest {
         )
 
     }
-
+    // Tries to insert a reminder into the database using the repository, then fetches it using id, and then compares the ids.
     @Test
     fun testGetReminderById() = runBlocking {
         val reminder1 = ReminderDTO(
@@ -86,7 +87,7 @@ class RemindersLocalRepositoryTest {
 
 
     }
-
+    // Tries to empty the database using the repository, then fetches all data, and ensures that retrieved list is empty.
     @Test
     fun testDeletionAll() = runBlocking {
         val reminder1 = ReminderDTO(

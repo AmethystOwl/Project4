@@ -51,7 +51,7 @@ class ReminderListFragmentTest {
     private lateinit var db: RemindersDatabase
 
     private val dataBindingIdlingResource = DataBindingIdlingResource()
-
+    // Tries to navigate to SaveReminderFragment and ensures that the NavController navigation action is invoked.
     @Test
     fun testNavigationToFragment() {
         val scenario =
@@ -86,7 +86,7 @@ class ReminderListFragmentTest {
             modules(listOf(myModule))
         }
     }
-
+    // Makes sure that the inserted data is really displayed in the fragment.
     @Test
     fun testDisplayedDataOnUi() = runTest {
 
@@ -108,7 +108,7 @@ class ReminderListFragmentTest {
         onView(withId(R.id.location)).check(matches(withText(reminderDTO.location)))
 
     }
-
+    // Makes sure that the "No data" TextView is visible when no data is present the database.
     @Test
     fun testForNoData() = runTest{
         launchFragmentInContainer<ReminderListFragment>(themeResId = R.style.AppTheme)
@@ -116,7 +116,7 @@ class ReminderListFragmentTest {
         onView(withText("No Data")).check(matches(isDisplayed()))
 
     }
-
+    // Makes sure that the Snackbar is shown with text "Test exception" when an error occurres.
     @Test
     fun testForErrorSnackBar() = runTest{
         launchFragmentInContainer<ReminderListFragment>(themeResId = R.style.AppTheme)

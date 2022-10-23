@@ -49,7 +49,7 @@ class SaveReminderViewModelTest {
         repository.deleteAllReminders()
 
     }
-
+    // sets location to null to check if the 'showSnackBarInt' livedata value is changed to err_select_location string resource value.
     @Test
     fun testNoLocationReminder() {
         val reminderDataItem = ReminderDataItem(
@@ -65,7 +65,7 @@ class SaveReminderViewModelTest {
 
 
     }
-
+    // sets title to null to check if the 'showSnackBarInt' livedata value is changed to err_enter_title string resource value.
     @Test
     fun testNoTitleReminder() {
         val reminderDataItem = ReminderDataItem(
@@ -79,7 +79,7 @@ class SaveReminderViewModelTest {
         val result = saveReminderViewModel.showSnackBarInt.getOrAwaitValue()
         assertEquals(R.string.err_enter_title, result)
     }
-
+    // Inserts a valid Reminder to check if the 'showToast' livedata value is changed "Reminder Saved !".
     @Test
     fun testSavedSuccessfully() {
         val reminderDataItem = ReminderDataItem(
@@ -94,7 +94,7 @@ class SaveReminderViewModelTest {
         assertEquals("Reminder Saved !", result)
     }
 
-
+    // Inserts a valid Reminder to check if the 'showLoading' livedata value is changed to TRUE when it's inserting, and FALSE when it's done.
     @Test
     fun testLoading() {
         val reminderDataItem = ReminderDataItem(
@@ -113,7 +113,7 @@ class SaveReminderViewModelTest {
         assertEquals(false, saveReminderViewModel.showLoading.getOrAwaitValue())
     }
 
-
+    // Checks if 'navigationCommand' livedata value is set to NavigationCommand.Back after saving a reminder to navigate back.
     @Test
     fun testNavigationBack() {
         val reminderDataItem = ReminderDataItem(
