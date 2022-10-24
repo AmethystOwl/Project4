@@ -122,7 +122,7 @@ class ReminderListFragmentTest {
         launchFragmentInContainer<ReminderListFragment>(themeResId = R.style.AppTheme)
         repository.setReturnError(true)
         remindersListViewModel.loadReminders()
-        onView(withText("Test exception")).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+        onView(withText("Error occurred while trying to retrieve reminders.")).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
 
     }
 

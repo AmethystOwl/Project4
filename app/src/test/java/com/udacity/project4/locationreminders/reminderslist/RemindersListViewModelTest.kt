@@ -83,7 +83,7 @@ class RemindersListViewModelTest {
     fun testSnackBarError() = runTest{
         repository.setReturnError(true)
         remindersListViewModel.loadReminders()
-        assertEquals("Test exception",remindersListViewModel.showSnackBar.getOrAwaitValue())
+        assertEquals("Error occurred while trying to retrieve reminders.",remindersListViewModel.showSnackBar.getOrAwaitValue())
 
     }
 

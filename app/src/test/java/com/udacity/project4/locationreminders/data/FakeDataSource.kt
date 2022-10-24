@@ -10,7 +10,7 @@ class FakeDataSource : ReminderDataSource {
 
     override suspend fun getReminders(): Result<List<ReminderDTO>> {
         if (shouldReturnError) {
-            return Result.Error("Test exception")
+            return Result.Error("Error occurred while trying to retrieve reminders.")
         }
         return Result.Success(reminderServiceData.values.toList())
     }
@@ -22,7 +22,7 @@ class FakeDataSource : ReminderDataSource {
 
     override suspend fun getReminder(id: String): Result<ReminderDTO> {
         if (shouldReturnError) {
-            return Result.Error("Test exception")
+            return Result.Error("Error occurred while trying to retrieve reminder.")
         }
         reminderServiceData[id]?.let {
             return Result.Success(it)
