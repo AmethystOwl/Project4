@@ -1,3 +1,4 @@
+import android.app.Activity
 import android.app.Application
 import android.view.View
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
@@ -9,6 +10,7 @@ import androidx.test.espresso.IdlingRegistry
 import androidx.test.espresso.action.ViewActions
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.assertion.ViewAssertions.matches
+import androidx.test.espresso.matcher.RootMatchers.withDecorView
 import androidx.test.espresso.matcher.ViewMatchers.*
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
@@ -27,6 +29,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import org.hamcrest.Matchers.`is`
+import org.hamcrest.Matchers.not
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -129,7 +133,9 @@ class RemindersActivityTest {
         runBlocking { delay(1000) }
         onView(withId(R.id.saveButton)).perform(click())
         onView(withId(R.id.saveReminder)).perform(click())
-        onView(withText("Reminder Saved !")).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+       // onView(withText("Reminder Saved !")).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+        onView(withText(R.string.reminder_saved)).inRoot(withDecorView(not(`is`(handleActivityScenario(activityScenario).window.decorView))))
+            .check(matches(isDisplayed()))
         onView(withText("My Reminder")).check(matches(isDisplayed()))
         onView(withText("My Description")).check(matches(isDisplayed()))
         activityScenario.close()
@@ -179,5 +185,11 @@ class RemindersActivityTest {
 
         activityScenario.close()
     }
-
+    private fun handleActivityScenario(activityScenario: ActivityScenario<RemindersActivity>): Activity {
+        lateinit var activity: Activity
+        activityScenario.onActivity {
+            activity = it
+        }
+        return activity
+    }
 }

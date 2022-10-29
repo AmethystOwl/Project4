@@ -38,7 +38,6 @@ import com.udacity.project4.databinding.FragmentSelectLocationBinding
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
 import kotlinx.android.synthetic.main.it_reminder.*
-import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.sharedViewModel
 
 
@@ -49,6 +48,7 @@ class SelectLocationFragment : BaseFragment() {
     private val requestPermsContent =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { perms: Map<String, Boolean> ->
             if (perms[Manifest.permission.ACCESS_FINE_LOCATION] == true) {
+                mapView.isMyLocationEnabled = true
                 checkDeviceLocationSettingsAndStartGeofence(true)
             } else {
                 Snackbar.make(
@@ -102,6 +102,10 @@ class SelectLocationFragment : BaseFragment() {
 
         mapFragment.getMapAsync {
             mapView = it
+            if (foregroundPermissionApproved()) {
+                mapView.isMyLocationEnabled = true
+
+            }
             val locationManager =
                 requireContext().getSystemService(Context.LOCATION_SERVICE) as LocationManager
             val criteria = Criteria()
@@ -130,6 +134,8 @@ class SelectLocationFragment : BaseFragment() {
                     .bearing(90f)
                     .build()
                 mapView.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
+
+
             }
             setMapStyle(mapView)
             mapView.setOnPoiClickListener { poi ->
@@ -160,6 +166,8 @@ class SelectLocationFragment : BaseFragment() {
                 poiMarker?.showInfoWindow()
                 binding.saveButton.visibility = View.VISIBLE
             }
+            mapView.setOnMyLocationButtonClickListener(listener)
+
         }
         binding.saveButton.setOnClickListener {
             onLocationSelected()
@@ -167,10 +175,13 @@ class SelectLocationFragment : BaseFragment() {
         }
 
 
-
         return binding.root
     }
 
+    private val listener = GoogleMap.OnMyLocationButtonClickListener {
+        checkDeviceLocationSettingsAndStartGeofence()
+        true
+    }
 
     private fun setMapStyle(map: GoogleMap) {
         try {

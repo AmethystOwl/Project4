@@ -116,7 +116,7 @@ class ReminderListFragmentTest {
         onView(withText("No Data")).check(matches(isDisplayed()))
 
     }
-    // Makes sure that the Snackbar is shown with text "Test exception" when an error occurres.
+    // Makes sure that the Snackbar is shown with text "Test exception" when an error occurred.
     @Test
     fun testForErrorSnackBar() = runTest{
         launchFragmentInContainer<ReminderListFragment>(themeResId = R.style.AppTheme)

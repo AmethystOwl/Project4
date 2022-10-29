@@ -53,20 +53,28 @@ class SaveReminderFragment : BaseFragment() {
                         startActivity(intent)
                     }.show()
                 }
-                else -> {}
+                true -> {
+                    val title = _viewModel.reminderTitle.value
+                    val description = _viewModel.reminderDescription.value
+                    val locationStr = _viewModel.reminderSelectedLocationStr.value
+                    val latitude = _viewModel.latitude.value
+                    val longitude = _viewModel.longitude.value
+                    addGeoFenceAndSaveToDb(latitude, longitude, title, description, locationStr)
+                }
             }
         }
-    private val locationSettingsContent = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()){
-        if (it.resultCode == Activity.RESULT_OK) {
-            val title = _viewModel.reminderTitle.value
-            val description = _viewModel.reminderDescription.value
-            val locationStr = _viewModel.reminderSelectedLocationStr.value
-            val latitude = _viewModel.latitude.value
-            val longitude = _viewModel.longitude.value
+    private val locationSettingsContent =
+        registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
+            if (it.resultCode == Activity.RESULT_OK) {
+                val title = _viewModel.reminderTitle.value
+                val description = _viewModel.reminderDescription.value
+                val locationStr = _viewModel.reminderSelectedLocationStr.value
+                val latitude = _viewModel.latitude.value
+                val longitude = _viewModel.longitude.value
 
-            addGeoFenceAndSaveToDb(latitude, longitude, title, description, locationStr)
+                addGeoFenceAndSaveToDb(latitude, longitude, title, description, locationStr)
+            }
         }
-    }
 
     override val _viewModel: SaveReminderViewModel by sharedViewModel()
     private lateinit var binding: FragmentSaveReminderBinding
@@ -106,11 +114,11 @@ class SaveReminderFragment : BaseFragment() {
         }
         geofencingClient = LocationServices.getGeofencingClient(requireActivity())
         binding.saveReminder.setOnClickListener {
+            _viewModel.reminderTitle.value = binding.reminderTitle.text.toString()
+            _viewModel.reminderDescription.value = binding.reminderDescription.text.toString()
             if (!backgroundLocationApproved()) {
                 backgroundLocationContent.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
             } else {
-                _viewModel.reminderTitle.value = binding.reminderTitle.text.toString()
-                _viewModel.reminderDescription.value = binding.reminderDescription.text.toString()
                 val title = _viewModel.reminderTitle.value
                 val description = _viewModel.reminderDescription.value
                 val locationStr = _viewModel.reminderSelectedLocationStr.value
@@ -142,8 +150,8 @@ class SaveReminderFragment : BaseFragment() {
         description: String?,
         locationStr: String?
     ) {
-        if(isForegroundPermissionApproved()){
-            if(isBackgroundPermissionApproved()){
+        if (isForegroundPermissionApproved()) {
+            if (isBackgroundPermissionApproved()) {
                 val locationRequest = LocationRequest.create()
                 locationRequest.priority = LocationRequest.PRIORITY_LOW_POWER
                 val locationSettingsBuilder =
@@ -153,18 +161,32 @@ class SaveReminderFragment : BaseFragment() {
                     .addOnCompleteListener {
                         if (it.isSuccessful) {
                             val reminderDataItem =
-                                ReminderDataItem(title, description, locationStr, latitude, longitude)
+                                ReminderDataItem(
+                                    title,
+                                    description,
+                                    locationStr,
+                                    latitude,
+                                    longitude
+                                )
                             if (_viewModel.validateEnteredData(reminderDataItem)) {
                                 val geofence = Geofence.Builder().setRequestId(reminderDataItem.id)
-                                    .setCircularRegion(reminderDataItem.latitude!!, reminderDataItem.longitude!!, 200f)
+                                    .setCircularRegion(
+                                        reminderDataItem.latitude!!,
+                                        reminderDataItem.longitude!!,
+                                        200f
+                                    )
                                     .setExpirationDuration(Geofence.NEVER_EXPIRE)
                                     .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER).build()
 
                                 val geofencingRequest = GeofencingRequest.Builder()
-                                    .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER).addGeofence(geofence)
+                                    .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
+                                    .addGeofence(geofence)
                                     .build()
 
-                                geofencingClient.addGeofences(geofencingRequest, geofencePendingIntent).run {
+                                geofencingClient.addGeofences(
+                                    geofencingRequest,
+                                    geofencePendingIntent
+                                ).run {
                                     addOnSuccessListener {
                                         Log.d("Add Geofence", geofence.requestId)
                                     }
@@ -175,23 +197,32 @@ class SaveReminderFragment : BaseFragment() {
                                     }
                                 }
                                 _viewModel.validateAndSaveReminder(reminderDataItem)
-
                             }
                         }
                     }.addOnFailureListener {
                         if (it is ResolvableApiException) {
                             try {
-                                val intentSenderRequest = IntentSenderRequest.Builder(it.resolution).build()
+                                val intentSenderRequest =
+                                    IntentSenderRequest.Builder(it.resolution).build()
                                 locationSettingsContent.launch(intentSenderRequest)
                             } catch (sendEx: IntentSender.SendIntentException) {
-                                Log.d(TAG, "Error getting location settings resolution: " + sendEx.message)
+                                Log.d(
+                                    TAG,
+                                    "Error getting location settings resolution: " + sendEx.message
+                                )
                             }
                         } else {
                             Snackbar.make(
                                 requireView(),
                                 R.string.location_required_error, Snackbar.LENGTH_INDEFINITE
                             ).setAction(android.R.string.ok) {
-                                addGeoFenceAndSaveToDb(latitude, longitude, title, description, locationStr)
+                                addGeoFenceAndSaveToDb(
+                                    latitude,
+                                    longitude,
+                                    title,
+                                    description,
+                                    locationStr
+                                )
                             }.show()
 
                         }
