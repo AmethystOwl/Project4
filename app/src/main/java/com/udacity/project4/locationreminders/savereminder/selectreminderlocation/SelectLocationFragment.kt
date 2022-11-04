@@ -201,7 +201,6 @@ private  var locationLatLng: Location? = null
     private val listener = GoogleMap.OnMyLocationButtonClickListener {
         if(locationLatLng != null){
             mapView.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(locationLatLng?.latitude!!,locationLatLng?.longitude!!),15f))
-
         }
         checkDeviceLocationSettingsAndStartGeofence()
         true
@@ -311,6 +310,9 @@ private  var locationLatLng: Location? = null
                     fusedLocationClient.requestLocationUpdates(locationRequest,
                         locationCallback,
                         Looper.getMainLooper())
+                    if(locationLatLng != null){
+                        mapView.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(locationLatLng?.latitude!!,locationLatLng?.longitude!!),15f))
+                    }
 
                 }
             }.addOnFailureListener {
