@@ -15,23 +15,25 @@ import android.location.Location
 import android.location.LocationManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import android.view.*
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.databinding.DataBindingUtil
 import androidx.navigation.fragment.findNavController
 import com.google.android.gms.common.api.ResolvableApiException
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.LocationSettingsRequest
+import com.google.android.gms.location.*
+import com.google.android.gms.maps.CameraUpdate
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 import com.google.android.material.snackbar.Snackbar
+import com.udacity.project4.BuildConfig
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.databinding.FragmentSelectLocationBinding
@@ -44,10 +46,14 @@ import org.koin.androidx.viewmodel.ext.android.sharedViewModel
 private const val TAG = "SelectLocationFragment"
 
 class SelectLocationFragment : BaseFragment() {
+
     @SuppressLint("MissingPermission")
     private val requestPermsContent =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { perms: Map<String, Boolean> ->
             if (perms[Manifest.permission.ACCESS_FINE_LOCATION] == true) {
+                fusedLocationClient.requestLocationUpdates(locationRequest,
+                    locationCallback,
+                    Looper.getMainLooper())
                 mapView.isMyLocationEnabled = true
                 checkDeviceLocationSettingsAndStartGeofence(true)
             } else {
@@ -58,7 +64,7 @@ class SelectLocationFragment : BaseFragment() {
                 ).setAction("OK") {
                     val intent = Intent(
                         Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                        Uri.parse("package:" + requireContext().packageName)
+                        Uri.parse("package:" + BuildConfig.APPLICATION_ID)
                     )
                     intent.addCategory(Intent.CATEGORY_DEFAULT)
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -84,7 +90,7 @@ class SelectLocationFragment : BaseFragment() {
     private lateinit var binding: FragmentSelectLocationBinding
 
     private lateinit var mapView: GoogleMap
-
+private  var locationLatLng: Location? = null
     @SuppressLint("MissingPermission")
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -106,8 +112,21 @@ class SelectLocationFragment : BaseFragment() {
                 mapView.isMyLocationEnabled = true
 
             }
+            fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
+
             val locationManager =
                 requireContext().getSystemService(Context.LOCATION_SERVICE) as LocationManager
+            locationRequest = LocationRequest.create()
+            locationCallback = object : LocationCallback() {
+                override fun onLocationResult(p0: LocationResult) {
+                    super.onLocationResult(p0)
+                    if(p0.lastLocation != null){
+                        locationLatLng = p0.lastLocation
+                    }else{
+                        locationLatLng = p0.locations[0]
+                    }
+                }
+            }
             val criteria = Criteria()
             var location: Location? = null
             if (foregroundPermissionApproved()) {
@@ -118,6 +137,7 @@ class SelectLocationFragment : BaseFragment() {
                     )!!
                 )
             }
+
             if (location != null) {
                 mapView.animateCamera(
                     CameraUpdateFactory.newLatLngZoom(
@@ -179,6 +199,10 @@ class SelectLocationFragment : BaseFragment() {
     }
 
     private val listener = GoogleMap.OnMyLocationButtonClickListener {
+        if(locationLatLng != null){
+            mapView.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(locationLatLng?.latitude!!,locationLatLng?.longitude!!),15f))
+
+        }
         checkDeviceLocationSettingsAndStartGeofence()
         true
     }
@@ -241,6 +265,8 @@ class SelectLocationFragment : BaseFragment() {
     override fun onStart() {
         super.onStart()
         checkPermissionsAndStartGeofencing()
+
+
     }
 
 
@@ -274,7 +300,7 @@ class SelectLocationFragment : BaseFragment() {
 
     @SuppressLint("MissingPermission")
     private fun checkDeviceLocationSettingsAndStartGeofence(resolve: Boolean = true) {
-        val locationRequest = LocationRequest.create()
+         locationRequest = LocationRequest.create()
         locationRequest.priority = LocationRequest.PRIORITY_LOW_POWER
         val locationSettingsBuilder =
             LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
@@ -282,7 +308,10 @@ class SelectLocationFragment : BaseFragment() {
         locationServices.checkLocationSettings(locationSettingsBuilder.build())
             .addOnCompleteListener {
                 if (it.isSuccessful) {
-                    mapView.isMyLocationEnabled = true
+                    fusedLocationClient.requestLocationUpdates(locationRequest,
+                        locationCallback,
+                        Looper.getMainLooper())
+
                 }
             }.addOnFailureListener {
                 if (it is ResolvableApiException && resolve) {
@@ -303,5 +332,9 @@ class SelectLocationFragment : BaseFragment() {
                 }
             }
     }
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var locationRequest: LocationRequest
+    private lateinit var locationCallback: LocationCallback
+
 
 }
