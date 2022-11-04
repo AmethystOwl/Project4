@@ -64,7 +64,7 @@ class SelectLocationFragment : BaseFragment() {
                 ).setAction("OK") {
                     val intent = Intent(
                         Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                        Uri.parse("package:" + BuildConfig.APPLICATION_ID)
+                        Uri.parse("package:" + requireContext().packageName)
                     )
                     intent.addCategory(Intent.CATEGORY_DEFAULT)
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
